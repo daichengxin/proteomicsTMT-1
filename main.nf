@@ -1117,7 +1117,7 @@ process file_merge{
 	 FileMerger -in ${(id_map as List).join(' ')} \\
 	 			-in_type consensusXML \\
 	 			-annotate_file_origin  \\
-	 			-append_method ${params.append_method} \\
+	 			-append_method append_cols \\
 	 			-threads ${task.cpus} \\
 	 			-debug 10 \\
 	 			-out ID_mapper_merge.consensusXML \\
