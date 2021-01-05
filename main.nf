@@ -112,7 +112,6 @@ def helpMessage() {
 
       //TODO add more options for rescoring part
 
-
     ConsensusID:
       --consensusid_algorithm       Choose method to combine probabilities from multiple search engines (if used). Valid: best, worst, average, rank, PEPMatrix, PEPIons (Default: best)
       --min_consensus_support       Choose ratio of ADDITIONAL evidence for a peptide ID of a spectrum. Varies across methods. See documentation for further info. (Default: 0)
@@ -122,7 +121,6 @@ def helpMessage() {
     IDFilter:
       --protein_level_fdr_cutoff      Protein level FDR cutoff (this affects and chooses the peptides used for quantification)
 
-
     IDMapper:
       --rt_tolerance				RT tolerance (in seconds) for the matching of peptide identifications and consensus features (Default 5.0).
       --mz_tolerance				m/z tolerance (in ppm or Da) for the matching of peptide identifications and consensus features(Default 20.0).
@@ -130,12 +128,8 @@ def helpMessage() {
       --mz_reference				Source of m/z values for peptide identifications. If 'precursor', the precursor-m/z from the idXML is used. 
 									If 'peptide',masses are computed from the sequences of peptide hits.(Defalut 'peptide')
 
-	FileMerger:
-	  --annotate_file_origin		Store the original filename in each feature using meta value "file_origin".(Default false).
-	  --append_method			Append consensusMaps rowise or colwise.(Default append_rows).
-
-
-
+    FileMerger:
+      --annotate_file_origin		Store the original filename in each feature using meta value "file_origin". (Default false).
 
     Inference:
       --protein_fdr            		Additionally calculate the target-decoy FDR on protein-level based on the posteriors(Default false).
