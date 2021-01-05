@@ -1080,6 +1080,7 @@ process idmapper{
 	 
 	output:
 	 file("${id_file_filter.baseName}_map.consensusXML") into id_map_to_merger
+	 file "*.log"
 
 	script:
 	 """
@@ -1108,6 +1109,7 @@ process file_merge{
 
 	output:
 	 file("ID_mapper_merge.consensusXML") into id_merge_to_epi
+	 file "*.log"
 
 
 	script:
@@ -1135,6 +1137,7 @@ process epifany{
 
 	output:
 	 file("${consus_file.baseName}_epi.consensusXML") into epi_idfilter
+	 file "*.log"
 
 	 // expdes currently unused
 	script:
@@ -1163,6 +1166,7 @@ process epi_filter{
 
     output:
      file("${consus_epi.baseName}_filt.consensusXML") into confict_res
+     file "*.log"
 
 
     script:
@@ -1188,6 +1192,7 @@ process resolve_conflict{
 
 	output:
 	 file "${consus_epi_filt.baseName}_resconf.consensusXML" into pro_quant, ch_mztabexport
+	 file "*.log"
 
 
 	script:
@@ -1218,6 +1223,7 @@ process pro_quant{
 	 file "protein_out.csv" optional true into downstreams_tool_A
 	 file "peptide_out.csv" into downstreams_tool_B
 	 file "*.mzTab" optional true into out_mztab
+	 file "*.log"
 
 
 	 script:
@@ -1279,6 +1285,7 @@ process ptxqc {
      file "*.Rmd"
      file "*.pdf"
      file "*.txt"
+     file "*.log"
 
     script:
      """
