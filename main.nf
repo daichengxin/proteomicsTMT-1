@@ -112,7 +112,6 @@ def helpMessage() {
 
       //TODO add more options for rescoring part
 
-
     ConsensusID:
       --consensusid_algorithm       Choose method to combine probabilities from multiple search engines (if used). Valid: best, worst, average, rank, PEPMatrix, PEPIons (Default: best)
       --min_consensus_support       Choose ratio of ADDITIONAL evidence for a peptide ID of a spectrum. Varies across methods. See documentation for further info. (Default: 0)
@@ -122,7 +121,6 @@ def helpMessage() {
     IDFilter:
       --protein_level_fdr_cutoff      Protein level FDR cutoff (this affects and chooses the peptides used for quantification)
 
-
     IDMapper:
       --rt_tolerance				RT tolerance (in seconds) for the matching of peptide identifications and consensus features (Default 5.0).
       --mz_tolerance				m/z tolerance (in ppm or Da) for the matching of peptide identifications and consensus features(Default 20.0).
@@ -130,30 +128,26 @@ def helpMessage() {
       --mz_reference				Source of m/z values for peptide identifications. If 'precursor', the precursor-m/z from the idXML is used. 
 									If 'peptide',masses are computed from the sequences of peptide hits.(Defalut 'peptide')
 
-	FileMerger:
-	  --annotate_file_origin		Store the original filename in each feature using meta value "file_origin".(Default false).
-	  --append_method				Append consensusMaps rowise or colwise.(Default append_rows).
-
-
-
+    FileMerger:
+      --annotate_file_origin		Store the original filename in each feature using meta value "file_origin". (Default false).
 
     Inference:
       --protein_fdr            		Additionally calculate the target-decoy FDR on protein-level based on the posteriors(Default false).
       --greedy_group_resolution		Default none.
-      --top_PSMs					Consider only top X PSMs per spectrum. 0 considers all.(Default 1).
+      --top_PSMs			Consider only top X PSMs per spectrum. 0 considers all.(Default 1).
 
     IDConflictResolver:
       --resolve_between_features	A map may contain multiple features with both identical (possibly modified i.e. not stripped) sequence and charge state. 							   The feature with the 'highest intensity' is very likely the most reliable one.Default(off),highest_intensity
 
     ProteinQuantifier:
-      --top 						Calculate protein abundance from this number of proteotypic peptides (most abundant first; '0' for all, Default 3)
-      --average						Averaging method used to compute protein abundances from peptide abundances.
-      								(median,mean,weighted_mean,sum Default median).
+      --top 				Calculate protein abundance from this number of proteotypic peptides (most abundant first; '0' for all, Default 3)
+      --average				Averaging method used to compute protein abundances from peptide abundances.
+      							(median,mean,weighted_mean,sum Default median).
       --best_charge_and_fraction	Distinguish between fraction and charge states of a peptide.(Default false).
-      --ratios						Add the log2 ratios of the abundance values to the output.(Default false)
-      --normalize					Scale peptide abundances so that medians of all samples are equal.(Default false)
-      --fix_peptides				Use the same peptides for protein quantification across all samples.(Default false)
-
+      --ratios				Add the log2 ratios of the abundance values to the output.(Default false)
+      --normalize			Scale peptide abundances so that medians of all samples are equal.(Default false)
+      --fix_peptides			Use the same peptides for protein quantification across all samples.(Default false)
+      --mztab_export      		Output file mzTAB (default true)
 
 
     Other options:
@@ -1086,6 +1080,7 @@ process idmapper{
 	 
 	output:
 	 file("${id_file_filter.baseName}_map.consensusXML") into id_map_to_merger
+	 file "*.log"
 
 	script:
 	 """
@@ -1114,6 +1109,7 @@ process file_merge{
 
 	output:
 	 file("ID_mapper_merge.consensusXML") into id_merge_to_epi
+	 file "*.log"
 
 
 	script:
@@ -1121,7 +1117,7 @@ process file_merge{
 	 FileMerger -in ${(id_map as List).join(' ')} \\
 	 			-in_type consensusXML \\
 	 			-annotate_file_origin  \\
-	 			-append_method ${params.append_method} \\
+	 			-append_method append_cols \\
 	 			-threads ${task.cpus} \\
 	 			-debug 10 \\
 	 			-out ID_mapper_merge.consensusXML \\
@@ -1133,7 +1129,7 @@ process file_merge{
 process epifany{
 	label 'process_medium'
     
-    publishDir "${params.outdir}/logs", mode: 'copy', pattern: '*.log'
+    	publishDir "${params.outdir}/logs", mode: 'copy', pattern: '*.log'
 
 	input:
 	 file(consus_file) from id_merge_to_epi
@@ -1141,6 +1137,7 @@ process epifany{
 
 	output:
 	 file("${consus_file.baseName}_epi.consensusXML") into epi_idfilter
+	 file "*.log"
 
 	 // expdes currently unused
 	script:
@@ -1158,7 +1155,7 @@ process epifany{
 
 
 process epi_filter{
-	label 'process_very_low'
+    label 'process_very_low'
     label 'process_single_thread'
 
     publishDir "${params.outdir}/logs", mode: 'copy', pattern: '*.log'
@@ -1169,6 +1166,7 @@ process epi_filter{
 
     output:
      file("${consus_epi.baseName}_filt.consensusXML") into confict_res
+     file "*.log"
 
 
     script:
@@ -1186,14 +1184,15 @@ process resolve_conflict{
 	label 'process_medium'
 
 	publishDir "${params.outdir}/logs", mode: 'copy', pattern: '*.log'
-	publishDir "${params.outdir}/resolved_consensusXML", mode: 'copy', pattern: '*.consensusXML'
 
+	publishDir "${params.outdir}/resolved_consensusXML", mode: 'copy'
 	input:
 	 file(consus_epi_filt) from confict_res
 
 
 	output:
-	 file "${consus_epi_filt.baseName}_resconf.consensusXML" into pro_quant
+	 file "${consus_epi_filt.baseName}_resconf.consensusXML" into pro_quant, ch_mztabexport
+	 file "*.log"
 
 
 	script:
@@ -1212,7 +1211,7 @@ process pro_quant{
 	label 'process_medium'
 
 	publishDir "${params.outdir}/logs", mode: 'copy', pattern: '*.log'
-	publishDir "${params.outdir}/proteomics_tmt", mode: 'copy'
+    	publishDir "${params.outdir}/proteomics_tmt", mode: 'copy'
 
 
 	input:
@@ -1224,43 +1223,44 @@ process pro_quant{
 	 file "protein_out.csv" optional true into downstreams_tool_A
 	 file "peptide_out.csv" into downstreams_tool_B
 	 file "*.mzTab" optional true into out_mztab
+	 file "*.log"
 
 
 	 script:
+	      if( params.mztab_export )
+              """
+              ProteinQuantifier -in ${epi_filt_resolve} \\
+                        	-design ${pro_quant_exp} \\
+                        	-out protein_out.csv \\
+                        	-peptide_out peptide_out.csv \\
+                        	-mztab out.mzTab \\
+                        	-top ${params.top} \\
+                        	-average ${params.average} \\
+                        	-best_charge_and_fraction \\
+                        	-ratios \\
+                        	-threads ${task.cpus} \\
+                        	-consensus:normalize \\
+                        	-consensus:fix_peptides \\
+                        	> pro_quant.log
+              """
 
-	 if( params.mztab_export )
-	 	"""	
-	 	ProteinQuantifier -in ${epi_filt_resolve} \\
-	 				   	-design ${pro_quant_exp} \\
-	 				   	-out protein_out.csv \\
-	 				   	-peptide_out peptide_out.csv \\
-             		   	-mztab out.mzTab \\
-	 				   	-top ${params.top} \\
-	 				   	-average ${params.average} \\
-	 				   	-best_charge_and_fraction \\
-	 				   	-ratios \\
-	 				   	-threads ${task.cpus} \\
-	 				   	-consensus:normalize \\
-	 				   	-consensus:fix_peptides \\
-	 				   	> pro_quant.log
-	 	"""
-
-	 else 
-	 	"""
-	 	ProteinQuantifier -in ${epi_filt_resolve} \\
-	 				   	-design ${pro_quant_exp} \\
-	 				   	-out protein_out.csv \\
-	 				   	-peptide_out peptide_out.csv \\
-	 				   	-top ${params.top} \\
-	 				   	-average ${params.average} \\
-	 				   	-best_charge_and_fraction \\
-	 				   	-ratios \\
-	 				   	-threads ${task.cpus} \\
-	 				   	-consensus:normalize \\
-	 				   	-consensus:fix_peptides \\
-	 				   	> pro_quant.log
-	 """
+     	      else
+              """
+              ProteinQuantifier -in ${epi_filt_resolve} \\
+                        	-design ${pro_quant_exp} \\
+                        	-out protein_out.csv \\
+                        	-peptide_out peptide_out.csv \\
+                        	-top ${params.top} \\
+                        	-average ${params.average} \\
+                        	-best_charge_and_fraction \\
+                        	-ratios \\
+                        	-threads ${task.cpus} \\
+                        	-consensus:normalize \\
+                        	-consensus:fix_peptides \\
+                        	> pro_quant.log
+     	      """
 }
+
 
 
 //TODO allow user config yml (as second arg to the script
@@ -1285,6 +1285,7 @@ process ptxqc {
      file "*.Rmd"
      file "*.pdf"
      file "*.txt"
+     file "*.log"
 
     script:
      """
