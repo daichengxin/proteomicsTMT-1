@@ -1,4 +1,4 @@
-![image](/docs/images/nf-core-proteomicsTMT_logo.png)
+![image](/docs/images/nfcore-proteomicstmt_logo.png)
 
 **Proteomics Tandem Mass Tags quantification (TMT) analysis pipeline using OpenMS and MSstats, with feature quantification, feature summarization, quality control and group-based statistical analysis.**.
 
@@ -15,7 +15,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 3. Download the pipeline and test it on a minimal dataset with a single command:
 
     ```bash
-    nextflow run nf-core/proteomicsTMT -profile test,<docker/singularity/conda/institute>
+    nextflow run nf-core/proteomicstmt -profile test,<docker/singularity/conda/institute>
     ```
 
     > Please check [nf-core/configs](https://github.com/nf-core/configs#documentation) to see if a custom config file to run nf-core pipelines already exists for your Institute. If so, you can simply use `-profile <institute>` in your command. This will enable either `docker` or `singularity` and set the appropriate execution settings for your local compute environment.
@@ -23,7 +23,7 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 4. Start running your own analysis!
 
     ```bash
-    nextflow run nf-core/proteomicsTMT \
+    nextflow run nf-core/proteomicstmt \
       -profile <docker/singularity/conda/institute> \
       --input '*.mzml' \
       --database 'myProteinDB.fasta' \
