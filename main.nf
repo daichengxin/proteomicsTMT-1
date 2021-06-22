@@ -130,13 +130,12 @@ def helpMessage() {
       --mz_reference				Source of m/z values for peptide identifications. If 'precursor', the precursor-m/z from the idXML is used.
 									If 'peptide',masses are computed from the sequences of peptide hits.(Defalut 'peptide')
 
-	FileMerger:
-	  --annotate_file_origin		Store the original filename in each feature using meta value "file_origin".(Default false).
+	  FileMerger:
+	    --annotate_file_origin		Store the original filename in each feature using meta value "file_origin".(Default false).
 
 
 
     Inference:
-      --protein_fdr            		Additionally calculate the target-decoy FDR on protein-level based on the posteriors(Default false).
       --greedy_group_resolution		Default none.
       --top_PSMs					Consider only top X PSMs per spectrum. 0 considers all.(Default 1).
 
@@ -1144,9 +1143,11 @@ process epifany{
 	script:
 	 """
 	 Epifany -in ${consus_file} \\
-	 		 -protein_fdr ${params.protein_fdr} \\
+	 		 -protein_fdr true \\
 	 		 -threads ${task.cpus} \\
 	 		 -debug 1 \\
+       -algorithm:keep_best_PSM_only false \\
+       -algorithm:update_PSM_probabilities false \\
 	 		 -greedy_group_resolution ${params.greedy_group_resolution} \\
 			 -algorithm:top_PSMs ${params.top_PSMs} \\
 			 -out ${consus_file.baseName}_epi.consensusXML \\
@@ -1156,27 +1157,27 @@ process epifany{
 
 
 process epi_filter{
-	label 'process_very_low'
-    label 'process_single_thread'
+  label 'process_very_low'
+  label 'process_single_thread'
 
-    publishDir "${params.outdir}/logs", mode: 'copy', pattern: '*.log'
+  publishDir "${params.outdir}/logs", mode: 'copy', pattern: '*.log'
 
-    input:
-     file(consus_epi) from epi_idfilter
-
-
-    output:
-     file("${consus_epi.baseName}_filt.consensusXML") into confict_res
+  input:
+   file(consus_epi) from epi_idfilter
 
 
-    script:
-    """
-    IDFilter -in ${consus_epi} \\
-             -out ${consus_epi.baseName}_filt.consensusXML \\
-             -threads ${task.cpus} \\
-             -score:prot ${params.protein_level_fdr_cutoff}
-             > ${consus_epi.baseName}_idfilter.log
-    """
+  output:
+   file("${consus_epi.baseName}_filt.consensusXML") into conflict_res
+
+
+  script:
+  """
+  IDFilter -in ${consus_epi} \\
+           -out ${consus_epi.baseName}_filt.consensusXML \\
+           -threads ${task.cpus} \\
+           -score:prot ${params.protein_level_fdr_cutoff}
+           > ${consus_epi.baseName}_idfilter.log
+  """
 }
 
 
@@ -1187,7 +1188,7 @@ process resolve_conflict{
 	publishDir "${params.outdir}/resolved_consensusXML", mode: 'copy', pattern: '*.consensusXML'
 
 	input:
-	 file(consus_epi_filt) from confict_res
+	 file(consus_epi_filt) from conflict_res
 
 
 	output:
@@ -1195,7 +1196,8 @@ process resolve_conflict{
 
 
 	script:
-	"""IDConflictResolver -in ${consus_epi_filt} \\
+	"""
+  IDConflictResolver -in ${consus_epi_filt} \\
 						  -threads ${task.cpus} \\
 						  -debug 1 \\
 						  -resolve_between_features ${params.res_between_fet} \\
@@ -1224,40 +1226,24 @@ process pro_quant{
 	 file "*.mzTab" optional true into out_mztab
 
 
-	 script:
-
-	 if( params.mztab_export )
-	 	"""	
-	 	ProteinQuantifier -in ${epi_filt_resolve} \\
-	 				   	-design ${pro_quant_exp} \\
-	 				   	-out protein_out.csv \\
-	 				   	-peptide_out peptide_out.csv \\
-             		   	-mztab out.mzTab \\
-	 				   	-top ${params.top} \\
-	 				   	-average ${params.average} \\
-	 				   	-best_charge_and_fraction \\
-	 				   	-ratios \\
-	 				   	-threads ${task.cpus} \\
-	 				   	-consensus:normalize \\
-	 				   	-consensus:fix_peptides \\
-	 				   	> pro_quant.log
-	 	"""
-
-	 else 
-	 	"""
-	 	ProteinQuantifier -in ${epi_filt_resolve} \\
-	 				   	-design ${pro_quant_exp} \\
-	 				   	-out protein_out.csv \\
-	 				   	-peptide_out peptide_out.csv \\
-	 				   	-top ${params.top} \\
-	 				   	-average ${params.average} \\
-	 				   	-best_charge_and_fraction \\
-	 				   	-ratios \\
-	 				   	-threads ${task.cpus} \\
-	 				   	-consensus:normalize \\
-	 				   	-consensus:fix_peptides \\
-	 				   	> pro_quant.log
-	 """
+	script:
+    mztab = params.mztab_export ? "-mztab out.mzTab" : ""
+    """
+   	ProteinQuantifier -in ${epi_filt_resolve} \\
+   				   	-design ${pro_quant_exp} \\
+   				   	-out protein_out.csv \\
+   				   	-peptide_out peptide_out.csv \\
+             	${mztab} \\
+   				   	-top ${params.top} \\
+   				   	-average ${params.average} \\
+   				   	-best_charge_and_fraction \\
+   				   	-ratios \\
+   				   	-threads ${task.cpus} \\
+   				   	-consensus:normalize \\
+   				   	-consensus:fix_peptides \\
+   				   	-debug 100 \\
+   				   	> pro_quant.log
+   	"""
 }
 
 
